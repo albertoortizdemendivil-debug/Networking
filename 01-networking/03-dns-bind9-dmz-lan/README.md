@@ -764,6 +764,87 @@ All tests passed: both servers answer authoritatively for their own zones, exter
 
 ---
 
+## 🔧 Design Notes & Possible Improvements
+
+The lab was built to practise record types, zone files and resolver chaining, so several choices favour simplicity over production quality. After reviewing the finished work, these are the points I would change in a real deployment. The corrected zone files and options below were checked with `named-checkzone` and `named-checkconf`.
+
+| # | Observation | Why it matters | Improvement |
+|---|---|---|---|
+| 1 | The SOA record of *alberto.eus* lists the domain apex as primary server. | The first SOA field should be the primary name server, and the second the administrator mailbox. | Use `dns.alberto.eus. admin.alberto.eus.` (as already done in *alberto.lan*). |
+| 2 | The PTR for 10.104.9.104 points to *ftp*, which is a CNAME of *www* (10.104.9.103). | Forward and reverse DNS disagree, and a PTR should point to the canonical (A-record) name. | Point 10.104.9.104 to *dmz04.alberto.eus.*, the name that owns that address. |
+| 3 | PTR records exist for 10.104.9.2, .3 and .100 (*fw*, *proxy*, *dhcp*), but those names are aliases of the router (10.104.9.1). | Aliases share the router's address, so those reverse records describe addresses that no forward record uses. | Keep a single PTR for the canonical name (*router*) and remove the other three. |
+| 4 | *dnssec-validation* is disabled. | Resolvers lose protection against forged answers. | Use `dnssec-validation auto;`, which works out of the box with Internet access. |
+| 5 | *allow-query* and *allow-recursion* only cover the DMZ subnet, while the LAN DNS server forwards its queries here. | The LAN server would be refused. | Add that single host (10.104.39.3), as shown in Step 17, instead of opening the server to everyone. |
+| 6 | Zone transfers are not restricted. | Any host could request a copy of the whole zone. | Add `allow-transfer { none; };`, since there is no secondary server. |
+| 7 | *lan01* and *lan02* have static A records on addresses taken from the DHCP pool. | If a lease changes, the record becomes wrong. | Create DHCP reservations for them, or use dynamic DNS updates between DHCP and BIND. |
+| 8 | In Lab 02, address 10.104.9.101 was reserved for a different host (*dmz03*). | Two machines could claim the same address. | Plan the address space up front: keep servers in one dedicated range and DHCP reservations in another. |
+
+**Improved DMZ forward zone** (**/etc/bind/db.alberto.eus**, points 1 and serial update):
+
+```text
+$TTL 604800
+@   IN  SOA dns.alberto.eus. admin.alberto.eus. (
+            2025100602  ; Serial
+            28800       ; Refresh
+            3600        ; Retry
+            604800      ; Expire
+            38400 )     ; Negative cache TTL
+; ... records unchanged ...
+```
+
+**Improved DMZ reverse zone** (**/etc/bind/db.10.104.9**, points 1 to 3):
+
+```text
+$TTL 604800
+@   IN  SOA dns.alberto.eus. admin.alberto.eus. (
+            2025100602  ; Serial
+            28800       ; Refresh
+            3600        ; Retry
+            604800      ; Expire
+            38400 )     ; Negative cache TTL
+
+@   IN  NS   dns.alberto.eus.
+
+1   IN  PTR  router.alberto.eus.
+101 IN  PTR  dns.alberto.eus.
+102 IN  PTR  mail.alberto.eus.
+103 IN  PTR  www.alberto.eus.
+104 IN  PTR  dmz04.alberto.eus.
+```
+
+**Hardened server options** (**/etc/bind/named.conf.options** on *dmz01*, points 4 to 6):
+
+```text
+options {
+    directory "/var/cache/bind";
+
+    forwarders {
+        1.1.1.1;
+        9.9.9.9;
+    };
+
+    dnssec-validation auto;
+
+    allow-query     { 10.104.9.0/24; 10.104.39.3; };
+    allow-recursion { 10.104.9.0/24; 10.104.39.3; };
+    allow-transfer  { none; };
+
+    listen-on    { 10.104.9.101; };
+    listen-on-v6 { none; };
+};
+```
+
+After any change, increase the serial, validate and reload:
+
+```bash
+named-checkconf
+named-checkzone alberto.eus /etc/bind/db.alberto.eus
+named-checkzone 9.104.10.in-addr.arpa /etc/bind/db.10.104.9
+systemctl reload bind9
+```
+
+---
+
 ## 📚 References
 
 - **Zatiel.** (August 27, 2023). *How to configure DNS on Linux* [Video]. YouTube. <https://www.youtube.com/watch?v=sNX8QOGlUww>
