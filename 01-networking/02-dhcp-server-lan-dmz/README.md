@@ -465,6 +465,46 @@ For the DMZ reservation test, configure the *dmz03* machine in the same way as *
 
 ---
 
+## 🔧 Design Notes & Possible Improvements
+
+The lab covers the core of a DHCP deployment (pools, reservations, lease times and validation). These are the points I would address before using the design in production. The configuration in this document, including the DMZ block, was checked with `dhcpd -t`.
+
+| # | Observation | Why it matters | Improvement |
+|---|---|---|---|
+| 1 | The service is validated *after* it is started. | A syntax error found only after a restart can leave the network without DHCP. | Validate first and restart only if the check passes (see the workflow below). |
+| 2 | A single DHCP server serves both segments. | If it fails, no client can obtain or renew an address. | Add a second server with ISC DHCP *failover* peers, or use a router/VM with a standby role. |
+| 3 | Reservations rely on the MAC address. | MAC addresses are easy to spoof, as this lab itself shows when the VM MAC is changed to test a reservation. | Treat reservations as convenience, not authentication. Add port security or 802.1X on the switch in a real network. |
+| 4 | The DMZ uses a dynamic pool, but DMZ hosts are usually servers. | Servers should keep stable addresses. | Prefer reservations or static addresses for servers and keep the pool for guests and test machines. |
+| 5 | Clients receive public DNS servers (1.1.1.1 and 8.8.8.8). | Internal names cannot be resolved. | Hand out an internal DNS server, as done in [Lab 03](../03-dns-bind9-dmz-lan/README.md). |
+| 6 | The backup is kept in a user's home directory. | It is easy to forget or lose, and it only covers one file. | Store dated backups next to the configuration, or version **/etc** with *etckeeper* or Git. |
+| 7 | Leases are only visible through the clients. | Troubleshooting is slower. | Inspect **/var/lib/dhcp/dhcpd.leases** and the service journal on the server. |
+| 8 | ISC DHCP is no longer actively developed (end of life since 2022). | The package still works in Debian 12, but new features and fixes go to its successor. | Plan a migration to *ISC Kea*, which uses JSON configuration and supports a REST API and high availability. |
+
+**Safe change workflow**
+
+```bash
+# 1. Keep a dated backup next to the original
+cp /etc/dhcp/dhcpd.conf /etc/dhcp/dhcpd.conf.$(date +%F).bak
+
+# 2. Edit the configuration
+nano /etc/dhcp/dhcpd.conf
+
+# 3. Validate, and restart only if the check succeeds
+dhcpd -t -cf /etc/dhcp/dhcpd.conf && systemctl restart isc-dhcp-server
+```
+
+**Troubleshooting commands**
+
+```bash
+# Active leases and their MAC addresses
+cat /var/lib/dhcp/dhcpd.leases
+
+# Recent DHCP activity (DISCOVER / OFFER / REQUEST / ACK)
+journalctl -u isc-dhcp-server --since "10 minutes ago"
+```
+
+---
+
 ## 📚 References
 
 - **Debian Wiki.** (2023). *DHCP Server.* <https://wiki.debian.org/DHCP_Server> – Official Debian guide explaining how to install and configure `isc-dhcp-server`.

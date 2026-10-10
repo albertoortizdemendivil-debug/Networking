@@ -482,6 +482,103 @@ All tests passed.
 
 ---
 
+## 🔧 Design Notes & Possible Improvements
+
+The lab focuses on routing and NAT, so the firewall is deliberately minimal. Once forwarding is enabled, the router passes **all** traffic between the three networks, which is why tests T07 and T12 (DMZ ↔ LAN) succeed. That is useful to prove routing, but a DMZ is normally isolated from the internal network.
+
+| # | Observation | Why it matters | Improvement |
+|---|---|---|---|
+| 1 | No filtering in the `FORWARD` chain. | A compromised DMZ host could reach the LAN directly. | Set the default `FORWARD` policy to `DROP` and allow only the required flows: LAN → DMZ, LAN → Internet and DMZ → Internet. |
+| 2 | Forwarding is enabled by writing to **/proc/sys/net/ipv4/ip_forward**. | The change is lost on reboot unless the script runs again. | Use `sysctl`, and optionally make it persistent in **/etc/sysctl.d/**. |
+| 3 | The script has no `stop` or `status` actions and always applies the rules. | It cannot be managed like a normal service. | Add a `start / stop / restart / status` dispatcher. |
+| 4 | Interface names are repeated in every rule. | Renaming a NIC requires editing several lines. | Define them once as variables (*WAN*, *DMZ*, *LAN*). |
+| 5 | Debian 12 uses *nftables* as its native firewall. | `iptables` works through a compatibility layer. | Migrate the rule set to *nftables* when the lab moves to production. |
+
+**Improved firewall script** (**/etc/init.d/fw.sh**). The script was syntax-checked and its rules were loaded in an isolated network namespace; the resulting rule set is listed below.
+
+```bash
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          fw.sh
+# Required-Start:    $network $remote_fs
+# Required-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Router firewall (NAT and zone filtering)
+# Description:       Enables NAT for the DMZ and LAN subnets and filters
+#                    traffic between zones on this router
+### END INIT INFO
+
+WAN=enp0s3   # Upstream (classroom) network
+DMZ=enp0s8   # DMZ network
+LAN=enp0s9   # LAN network
+
+start() {
+    # Enable IPv4 packet forwarding
+    sysctl -w net.ipv4.ip_forward=1 >/dev/null
+
+    # Flush existing rules and delete user-defined chains
+    iptables -F
+    iptables -X
+    iptables -t nat -F
+
+    # Default policy: forwarded traffic is denied unless explicitly allowed
+    iptables -P FORWARD DROP
+
+    # Replies to connections that were already allowed
+    iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+    # LAN -> DMZ and LAN -> Internet
+    iptables -A FORWARD -i "$LAN" -o "$DMZ" -j ACCEPT
+    iptables -A FORWARD -i "$LAN" -o "$WAN" -j ACCEPT
+
+    # DMZ -> Internet only (DMZ -> LAN stays blocked)
+    iptables -A FORWARD -i "$DMZ" -o "$WAN" -j ACCEPT
+
+    # NAT for outbound traffic from the DMZ and LAN subnets
+    iptables -t nat -A POSTROUTING -s 10.104.9.0/24  -o "$WAN" -j MASQUERADE
+    iptables -t nat -A POSTROUTING -s 10.104.39.0/24 -o "$WAN" -j MASQUERADE
+}
+
+stop() {
+    # Remove all filtering and NAT
+    iptables -F
+    iptables -t nat -F
+    iptables -P FORWARD ACCEPT
+}
+
+case "$1" in
+    start|restart|"") start ;;
+    stop)             stop ;;
+    status)           iptables -L -n -v; iptables -t nat -L -n -v ;;
+    *) echo "Usage: $0 {start|stop|restart|status}" >&2; exit 1 ;;
+esac
+```
+
+Resulting rule set:
+
+```text
+-P FORWARD DROP
+-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -i enp0s9 -o enp0s8 -j ACCEPT
+-A FORWARD -i enp0s9 -o enp0s3 -j ACCEPT
+-A FORWARD -i enp0s8 -o enp0s3 -j ACCEPT
+-A POSTROUTING -s 10.104.9.0/24 -o enp0s3 -j MASQUERADE
+-A POSTROUTING -s 10.104.39.0/24 -o enp0s3 -j MASQUERADE
+```
+
+**Expected test results with the improved script**
+
+| Test | Result |
+|---|---|
+| T12 – lan01 → dmz01 | Reply received (LAN may reach the DMZ) |
+| **T07 – dmz01 → lan01** | **No reply** (DMZ → LAN is blocked) |
+| T02, T03, T09, T10, T14, T15 – Internet access | Reply received (unchanged) |
+
+Because the *conntrack* rule accepts return traffic, LAN → DMZ connections still work in both directions even though DMZ-initiated connections to the LAN are refused.
+
+---
+
 ## 📚 References
 
 - **Debian Project.** *Chapter 5: Network setup* – Debian Reference. <https://www.debian.org/doc/manuals/debian-reference/ch05.en.html>
