@@ -8,7 +8,7 @@ My approach focuses on creating robust, secure, and well-documented network infr
 Click on any folder above to explore the full technical documentation, step-by-step configuration guides, and verification tests:
 
 *   **[01-lan-dmz-architecture](01-router-lan-dmz-nat)** -> Multi-zone corporate network design isolating internal users from public-facing services using strict firewall rules.
-*   **[02-dhcp-server-deployment](02-dhcp-server-deployment/)** -> Dynamic IP addressing allocation, scopes configuration, and lease management for corporate clients.
+*   **[02-dhcp-server-deployment](02-dhcp-server-lan-dmz)** -> Dynamic IP addressing allocation, scopes configuration, and lease management for corporate clients.
 *   **[03-dns-services](03-dns-services/)** -> Internal and external domain name resolution setup, forward/reverse lookup zones, and caching.
 *   **[04-http-web-server](04-http-web-server/)** -> Apache/Nginx web server hosting, virtual hosts configuration, and basic security hardening.
 *   **[05-ftp-secure-storage](05-ftp-secure-storage/)** -> Secure file transfer protocols deployment, user isolation, and permission matrices.
