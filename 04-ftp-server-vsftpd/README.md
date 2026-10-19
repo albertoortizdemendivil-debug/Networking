@@ -101,8 +101,6 @@ chmod -R 755 /var/www/
 
 Each customer is now the owner of their own site directory.
 
-<!-- REVIEW: the original document mixes two naming schemes: it creates /var/www/www.alberto.eus and /var/www/www.esperientziak.org, but Apache's DocumentRoot, the vsftpd local_root pattern and every screenshot use /var/www/www.alberto and /var/www/www.esperientziak. I used the short names everywhere because they are the ones that actually work together. Make sure the HTTP lab uses the same ones. -->
-
 ### Step 2 – Install vsftpd
 
 ```bash
@@ -227,8 +225,6 @@ chown esperientziak:esperientziak /var/www/www.esperientziak/irudiak
 chmod -R 755 /var/www/www.esperientziak/irudiak
 ```
 
-<!-- REVIEW: the original only runs "sudo mkdir -p" and "chmod -R 755" on this directory. A directory created with sudo belongs to root, yet the screenshots show the esperientziak user creating folders and uploading files inside /irudiak. I added the chown line that makes that possible. Tell me if you actually did it another way. -->
-
 Then add to **/etc/vsftpd.conf**:
 
 ```text
@@ -326,7 +322,6 @@ Open FileZilla and fill in the quick-connect bar:
 | Password | The password set with `adduser` |
 | Port | 21 (default) |
 
-<!-- REVIEW: the original FileZilla section says the user is "aldizkaria", but the account created in Step 1 is "alberto" (and the screenshots use adminweb). I used alberto. -->
 
 ### Complete configuration
 
