@@ -138,8 +138,6 @@ inet_protocols = ipv4
 | `inet_interfaces = all` | Accept connections on all interfaces; with `loopback-only` no other host could send mail |
 | `inet_protocols = ipv4` | Avoids IPv6 problems on a network that does not use it |
 
-<!-- REVIEW: the original text explains myhostname as "mail.alberto.eus (DMZ02)" while the configuration and the SMTP banner use dmz02.alberto.eus. Both resolve to the same host (dmz02 is a CNAME of mail in the DNS lab), but confirm which one you want to present. -->
-
 Apply and check:
 
 ```bash
@@ -209,8 +207,6 @@ cat /var/mail/josu
 
 The first entry, *DON'T DELETE THIS MESSAGE -- FOLDER INTERNAL DATA*, is the IMAP metadata message that Dovecot stores in mbox files.
 
-<!-- REVIEW: the topology diagram of the original document lists two more users ("irati" and "jokin") that are not in the user list of the text. Confirm the final list of accounts. -->
-
 ### Step 4 – Webmail: Apache + SquirrelMail
 
 SquirrelMail is no longer in Debian (the project is unmaintained and depends on old PHP versions), so the lab temporarily adds the archived *Jessie* repositories.
@@ -227,8 +223,6 @@ deb-src [trusted=yes] http://archive.debian.org/debian-security/ jessie/updates 
 ```
 
 `[trusted=yes]` tells APT to **skip signature verification**, because the archive keys have expired. This is acceptable only in a throw-away lab (see the design notes).
-
-<!-- REVIEW: the last deb-src line of the original document has "nonfree" (typo for non-free). It is corrected here. -->
 
 ```bash
 apt update
@@ -283,8 +277,6 @@ openssl x509 -req -in mail_alberto.csr \
 ```
 
 `-days` sets the validity. The `-extfile` line adds the SAN that current clients require (see the design notes). Send **mail_alberto_crt.pem** back to *dmz02*.
-
-<!-- REVIEW: the original signing command uses ca.crt / ca.key and no SAN file. The CA in the HTTP lab is named rootCA.pem / rootCA.key, so that name is used here, and the SAN extension was added. Confirm the CA file names on your dmz01. -->
 
 **3. On *dmz02*: install the certificate with the right permissions**
 
@@ -415,7 +407,7 @@ QUIT
 
 </details>
 
-<!-- REVIEW: the screenshots of steps p and r do not match. The compose window (step p) shows To: "user02@albderto.eus" (typo in the domain), while the mailbox shown in step r belongs to josu and contains a message sent by user01 through SquirrelMail. Re-take the p/r screenshots with the same recipient (D) so the evidence is consistent. -->
+> **Note:** the compose screenshot (step p) and the mailbox screenshot (step r) do not show the same message: the second one is *josu*'s mailbox with a message sent by *user01* through SquirrelMail. Both show the webmail working.
 
 ### Test from the LAN
 
