@@ -35,7 +35,7 @@ A small hosting company runs its public services in a DMZ. The network team must
 
 > **Prerequisites:** the router, DHCP, DNS, FTP, HTTP and mail labs are working ([01](../01-router-lan-dmz-nat/README.md), [02](../02-dhcp-server-lan-dmz/README.md), [03](../03-dns-bind9-dmz-lan/README.md), [04](../04-ftp-server-vsftpd/README.md), [05](../05-http-server-apache/README.md), [06](../06-mail-server-postfix-dovecot/README.md)). Lab 01 already enables forwarding and NAT; this lab replaces that minimal script with the full policy.
 
-<!-- REVIEW: interface names. The firewall script of this document (and the "iptables -L" screenshot) uses enp0s8 as LAN and enp0s9 as DMZ, while Lab 01 documents enp0s8 as DMZ and enp0s9 as LAN. The README keeps the script's values in the variables WAN / LAN / DMZ at the top of the script. Check with "ip -br addr" on the router and swap the two variables if your NIC order is the one from Lab 01. -->
+> **Interface names:** in the environment where this lab was captured (see the `iptables -L` output below), the router's *enp0s8* is the LAN and *enp0s9* is the DMZ, the reverse of [Lab 01](../01-router-lan-dmz-nat/README.md). The script keeps the zone interfaces in the `WAN`, `LAN` and `DMZ` variables at its top; check `ip -br addr` and swap them if your NIC order differs.
 
 ---
 
@@ -218,7 +218,7 @@ esac
 exit 0
 ```
 
-<!-- REVIEW: deviations of this cleaned script from the one in the original document. (1) The ICMP rule is restricted to the WAN interface: the deployed script dropped echo-requests on every interface (the "iptables -L" screenshot shows "in: *"), which also blocks LAN pings to the router, while the text only asks to block pings from the WAN. (2) The FORWARD rule for the webmail now matches port 80 on 10.104.9.102, because DNAT has already rewritten 8080 to 80 when FORWARD is evaluated; the original rule for port 8080 could never match. (3) The administrator PC is 172.20.104.109, as in the script and screenshots; the text of section 4.7.1 says .102. (4) Network comments with typos (10.104.32.0/24, 10.104.2.0/24) were replaced by 10.104.39.0/24 and 10.104.9.0/24. (5) A start/stop/status dispatcher was added; the original script re-applied the rules on any argument, including the "stop" that systemd sends at shutdown. -->
+> **About this script:** it is a cleaned version of the one I deployed. The ICMP rule is limited to the WAN interface, whereas the deployed script dropped echo requests on every interface (visible as `in: *` in the `iptables -L` output below), which also blocked pings from the LAN. The webmail `FORWARD` rule matches port 80, because DNAT has already rewritten 8080 to 80 when `FORWARD` is evaluated. A `start | stop | status` dispatcher was added so the rules are not re-applied when systemd calls the script with `stop` at shutdown.
 
 ### Step 3 – Make it executable and run it at boot
 
@@ -289,8 +289,6 @@ The script was syntax-checked (`bash -n`) and loaded in an isolated network name
 | e-IV/V/VI | Classroom PC | Mail by terminal, Thunderbird and webmail | Mail sent and read | ⚪ not captured |
 | e-VII | Classroom PC | A blocked flow (for example FTP from another IP of the subnet) | Connection dropped | ⚪ not captured |
 | b-I, b-IV, c-I, d-III, e-VIII | – | Ping to the router by name, teacher's FTP server, own site from the router, `nmap` from the classroom | – | ⚪ not captured |
-
-<!-- REVIEW: the screenshots do not cover every test of the assignment (ping to the router by name, FTP to the teacher's server, mail/webmail from the classroom PC, a blocked connection, nmap from the classroom). Add them if you want the evidence to be complete; the blocked-FTP case is the most valuable one for a firewall lab. -->
 
 <details>
 <summary>📷 Screenshots – router</summary>
@@ -365,9 +363,7 @@ The lab meets the assignment, whose base policy is deliberately permissive. Thes
 
 ### Default-deny version of the script
 
-The script below implements points 1, 2, 4, 5 and 6: default-deny policies, allow-lists per zone, a fixed passive range, a rate-limited `LOG`, and a `start | stop | status` dispatcher. It was syntax-checked and its rules were loaded in an isolated network namespace; as in the main test, traffic could not be generated there, so test it on the VM before relying on it.
-
-<!-- REVIEW: the default-deny script has not been run on your VMs. Before using it, confirm which services the router itself must offer (DNS and DHCP are assumed, as in Labs 02 and 03), and keep a console session open in case a rule locks you out. -->
+The script below implements points 1, 2, 4, 5 and 6: default-deny policies, allow-lists per zone, a fixed passive range, a rate-limited `LOG`, and a `start | stop | status` dispatcher. It was syntax-checked and its rules were loaded in an isolated network namespace; as in the main test, traffic could not be generated there, so this version is a proposal that has not been tested on the lab VMs.
 
 ```bash
 #!/bin/bash
