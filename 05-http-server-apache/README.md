@@ -72,8 +72,6 @@ flowchart TB
 
 (*) `Require host` compares the **reverse DNS name** of the client. Clients in the LAN resolve to the *alberto.lan* domain, not *alberto.eus*, so they are denied. This matches the screenshots in the testing section.
 
-<!-- REVIEW: the original document shows directories named both www.alberto.eus and www.alberto (and www.esperientziak.org / www.esperientziak). This README uses the short names (www.alberto, www.esperientziak) everywhere because they are the ones that match the vsftpd setting local_root=/var/www/www.$USER. Confirm which names exist on your server. -->
-
 ---
 
 ## 🚀 Step-by-Step Configuration
@@ -279,8 +277,6 @@ The magazine is published over HTTPS (Step 10). The final layout uses **two file
 | `Require host` | Match on the client's reverse DNS name (Apache does a reverse lookup and confirms it with a forward lookup) |
 | `ErrorLog` / `CustomLog` | Per-site logs in **/var/log/apache2/**; the `combined` format records IP, user agent, time and URL |
 
-<!-- REVIEW: in the original document the port 80 block and the port 443 block were written one after the other without closing the first </VirtualHost>, and the SSL paths differed between the file (/etc/ssl/certs/alberto.crt) and the explanation (/etc/ssl/alberto.crt). Splitting the configuration into two files and using the paths from the file-copy step is the interpretation used here (it was loaded and tested in an Apache 2.4 instance). -->
-
 #### 5.2 – *www.esperientziak.org*
 
 **/etc/apache2/sites-available/www.esperientziak.org.conf**:
@@ -319,8 +315,6 @@ The magazine is published over HTTPS (Step 10). The final layout uses **two file
 | `Alias /irudiak …/irudiak` | Maps the URL `/irudiak` to the image directory |
 | `Options +Indexes` | Generates an automatic listing when the directory has no index file |
 | Default log files | This site logs to the shared **error.log** / **access.log** instead of dedicated files |
-
-<!-- REVIEW: the original virtual host for esperientziak.org has no ServerName line (only ServerAlias). It works because Apache falls back to the first definition and the alias matches, but ServerName was added here for clarity. -->
 
 ### Step 6 – Enable the sites
 
@@ -381,8 +375,6 @@ Apache runs as *www-data*, which needs read access. Use `755` for directories an
 find /var/www -type d -exec chmod 755 {} +
 find /var/www -type f -exec chmod 644 {} +
 ```
-
-<!-- REVIEW: the original document also mentions /var/www/www.esperientziak/irudiak (created in the FTP lab) but does not show the images being copied. Add a sentence on where the gallery images come from if you want the lab to be fully reproducible. -->
 
 ### Step 8 – HTTPS part 1: create the private Certificate Authority (*dmz01*)
 
@@ -493,8 +485,6 @@ a2ensite www.alberto.eus-ssl.conf
 apachectl configtest
 systemctl restart apache2
 ```
-
-<!-- REVIEW: the original virtual host also lists "SSLCACertificateFile /etc/ssl/albertoCA.crt". That file is never created in the document, and the directive is only used to verify *client* certificates, so it was left out. If you did create it, tell me where it comes from. -->
 
 ### Step 11 – Trust the CA in the browser (Firefox)
 
