@@ -68,11 +68,6 @@ Every folder follows the same structure:
 - `<One concrete problem you solved, e.g. "DHCP leases weren't reaching the DMZ until I ...">`
 - `<One mistake that taught you something about NAT, DNS or the firewall>`
 
-## Status and next steps
-
-- [x] Labs 01 to 07 documented
-- [ ] `<Repeat the labs in Cisco Packet Tracer as part of CCNA prep>`
-- [ ] `<Automate one lab with Ansible, only if you actually plan to>`
 
 ## Notes
 
