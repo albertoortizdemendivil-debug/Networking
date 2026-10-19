@@ -576,8 +576,6 @@ systemctl restart bind9
 
 Queries from **lansrv02** reach the DMZ DNS server from the address 10.104.39.3, which is outside the DMZ subnet. The access control lists of **dmz01** must therefore also accept that single host:
 
-<!-- REVIEW: this step is not in the original Basque document. With allow-query/allow-recursion limited to 10.104.9.0/24 the LAN server would receive REFUSED, yet the tests show LAN clients resolving external names, so the real file must have been more permissive. Confirm which ACL values were actually used on dmz01. -->
-
 ```bash
 nano /etc/bind/named.conf.options    # on dmz01
 ```
@@ -672,7 +670,7 @@ The mail server of the domain is discovered automatically through the MX record 
 
 ### 2. DMZ server – reverse resolution
 
-<!-- REVIEW: the original reverse-lookup screenshot shows names such as "router.alberto.eus.9.104.10.in-addr.arpa." (missing trailing dot in the PTR targets). Re-take it after confirming the file matches the version above, then add it here. -->
+<
 
 Run `nslookup` in interactive mode and query each address:
 
