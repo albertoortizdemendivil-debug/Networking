@@ -283,7 +283,7 @@ The script was syntax-checked (`bash -n`) and loaded in an isolated network name
 | d-II | Router | `ping 1.1.1.1` | Replies | ✅ |
 | d-IV | Router | Browse an Internet site | Page loads | ✅ |
 | d-V | Router | `ftp 10.104.9.103` | Banner | ✅ |
-| e-I | Classroom PC | `ping alberto.eus` | Replies from 10.104.9.103 | ✅ |
+| e-I | Classroom PC | `ping alberto.eus` and `ping 10.104.39.15` (a LAN host) | Replies from 10.104.9.103 and from the LAN host (TTL 63: one router hop) | ✅ |
 | e-II | Classroom PC | Browse `https://www.alberto.eus` | Site loads | ✅ |
 | e-III | Classroom PC | FTP as *adminweb* and *esperientziak*, download and upload | Login, list, `mkdir`, `get`, `put` | ✅ |
 | e-IV/V/VI | Classroom PC | Mail by terminal, Thunderbird and webmail | Mail sent and read | ⚪ not captured |
@@ -318,6 +318,7 @@ The script was syntax-checked (`bash -n`) and loaded in an isolated network name
 <summary>📷 Screenshots – classroom PC</summary>
 
 ![Ping to alberto.eus](images/t-classroom-ping-alberto.png)
+![Ping to a LAN host from the classroom PC](images/t-classroom-ping-lan-host.png)
 ![HTTPS site](images/t-classroom-https-site.png)
 ![FTP as adminweb](images/t-classroom-ftp-adminweb.png)
 ![FTP as esperientziak](images/t-classroom-ftp-esperientziak.png)
@@ -352,7 +353,7 @@ The lab meets the assignment, whose base policy is deliberately permissive. Thes
 
 | # | Observation | Why it matters | Improvement |
 |---|---|---|---|
-| 1 | `INPUT`, `OUTPUT` and `FORWARD` default to `ACCEPT`. | Every flow not matched by a `DROP` passes. Classroom hosts that route to 10.104.9.0/24 directly (the screenshots show a PC pinging 10.104.9.103) bypass DNAT and can reach any DMZ port, and nothing blocks WAN → LAN. | Use **default-deny**: `-P INPUT DROP`, `-P FORWARD DROP`, and allow only the required flows (hardened script below). |
+| 1 | `INPUT`, `OUTPUT` and `FORWARD` default to `ACCEPT`. | Every flow not matched by a `DROP` passes. Classroom hosts that route to 10.104.9.0/24 directly bypass DNAT and can reach any DMZ port. The classroom PC pings both 10.104.9.103 (DMZ) and 10.104.39.15 (LAN) in the screenshots above, so nothing blocks WAN → LAN either. | Use **default-deny**: `-P INPUT DROP`, `-P FORWARD DROP`, and allow only the required flows (hardened script below). |
 | 2 | `FTP` and mail restrictions are `DROP` rules after the `ACCEPT`s. | They only cover the listed ports and the 172.20.104.0/24 subnet. | With a default-deny policy, the `ACCEPT` rules for the two hosts are enough, and nothing else needs an explicit `DROP`. |
 | 3 | LAN → DMZ is `ACCEPT` for all ports. | A LAN host can reach any service in the DMZ. The FTP screenshot from *admin01* uses passive port 43591, which only works because of this blanket rule. | Allow only the DMZ services in use, and give vsftpd a fixed passive range (next point). |
 | 4 | The firewall allows passive FTP ports 10000:10100, but vsftpd in the [FTP lab](../04-ftp-server-vsftpd/README.md) does not set a passive range. | The server chooses random ports (for example 43591), so passive transfers from the WAN would be blocked as soon as the policy is not permissive. | Add `pasv_enable=YES`, `pasv_min_port=10000`, `pasv_max_port=10100` to **/etc/vsftpd.conf** (the FTP lab uses 40000–40100 in its hardened example; use one range in both). |
