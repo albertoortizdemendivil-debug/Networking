@@ -385,7 +385,6 @@ This applies the configuration immediately. If the script prints nothing, it ran
 
 Now that the router forwards and translates traffic, each client needs the router as its default gateway and a DNS resolver.
 
-<!-- REVIEW: this step is not present in the original Basque document; it is required for the Internet tests below to work. Confirm the DNS server actually used. -->
 
 **dmz01** – **/etc/network/interfaces**
 
