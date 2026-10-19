@@ -3,7 +3,7 @@
 One cumulative project, built as seven labs: a Debian 12 router that splits a network into **LAN** and **DMZ**, and the services running on top of it (DHCP, DNS, FTP, web with HTTPS, mail and an iptables firewall). Every lab has a step-by-step guide, the configuration files with an explanation of each directive, verification tests and screenshots of the real result.
 
 > Originally written in Basque; the English version was translated with AI assistance. The lab work, configurations and screenshots are my own.
-> Completed during `<course and year>`, as part of my ASIR studies.
+> Completed during second year of an Intermediate Vocational Degree in IT.
 
 ## The network
 
@@ -63,4 +63,3 @@ There are 161 screenshots in total.
 
 - These are lab configurations in a virtual environment, not production setups. The design notes in each lab say what I would change before using any of it for real.
 - Addresses belong to a private lab network. No credentials are included in the repository.
-- Next steps: `<repeat the topology in Cisco Packet Tracer as part of CCNA preparation, if you plan to>`
